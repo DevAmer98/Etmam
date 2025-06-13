@@ -93,6 +93,8 @@ async function sendNotificationToManager(message, title = 'Notification') {
 
 router.put('/missing/:id', async (req, res) => {
   const { id } = req.params;
+  const { storekeeper_notes } = req.body;
+
 
   if (!id) {
     return res.status(400).json({ error: 'Missing order ID' });
