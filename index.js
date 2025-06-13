@@ -35,6 +35,7 @@ import acceptedManagerQoutationApi from './api/acceptManagerQuotation/[id]+api.j
 //import supervisorOrderApi from './api/order/create+api.js'
 import deliverdApi from './api/delivered/[id]+api.js';
 import notDeliverdApi from './api/not-delivered/[id]+api.js';
+import missingApi from './api/missing/[id]+api.js';
 import { servePDF } from './api/quotation/pdf.js'; 
 import { serveOrderPDF } from './api/order/pdf.js'; 
 import { serveXLXS } from './api/order/excel.js'; 
@@ -77,6 +78,7 @@ app.use('/api', acceptedStorekeeperQoutationApi);
 app.use('/api', acceptedManagerQoutationApi);
 app.use('/api', deliverdApi);
 app.use('/api', notDeliverdApi);
+app.use('/api/order', missingApi);
 app.use('/api', singleQuotationApi);
 app.use('/api', singleManagerApi);
 app.use('/api', singleAccountantApi);
