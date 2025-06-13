@@ -105,14 +105,15 @@ router.put('/missing/:id', async (req, res) => {
       missing_at = CURRENT_TIMESTAMP,
       updated_at = CURRENT_TIMESTAMP,
           manageraccept = 'pending',
-          storekeeperaccept = 'pending'
+          storekeeperaccept = 'pending',
+                    storekeeper_notes = $2
 
       WHERE id = $1
     `;
 
 
     await executeWithRetry(async () => {
-      return await withTimeout(pool.query(updateOrderQuery, [id]), 10000); // 10-second timeout
+      return await withTimeout(pool.query(updateOrderQuery, [id, storekeeper_notes]), 10000); // 10-second timeout
     });
 
     await sendNotificationToManager(`يوجد نقص في هذاالطلب${id}`);
