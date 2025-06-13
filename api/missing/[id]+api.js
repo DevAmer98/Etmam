@@ -104,7 +104,8 @@ router.put('/missing/:id', async (req, res) => {
          SET missing = TRUE,
       missing_at = CURRENT_TIMESTAMP,
       updated_at = CURRENT_TIMESTAMP,
-          manageraccept = 'pending'
+          manageraccept = 'pending',
+          storekeeperaccept = 'pending'
 
       WHERE id = $1
     `;

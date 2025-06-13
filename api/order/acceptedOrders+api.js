@@ -50,11 +50,11 @@ router.get('/orders/supervisorAccept', async (req, res) => {
     const hasStatus = status !== 'all';
 
     // Filter condition shared across both queries
-    let filterCondition = `orders.supervisoraccept = 'accepted'`;
+    let filterCondition = `orders.manageraccept = 'accepted'`;
     if (hasStatus) {
       filterCondition += ` AND orders.storekeeperaccept = $2`;
     }
-
+ 
     // Count query
     const countQuery = `
       SELECT COUNT(*) AS count
