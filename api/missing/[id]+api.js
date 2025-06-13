@@ -103,7 +103,7 @@ router.put('/missing/:id', async (req, res) => {
       UPDATE orders 
          SET missing = TRUE,
       missing_at = CURRENT_TIMESTAMP,
-      updated_at = CURRENT_TIMESTAMP
+      updated_at = CURRENT_TIMESTAMP,
           manageraccept = 'pending'
 
       WHERE id = $1
