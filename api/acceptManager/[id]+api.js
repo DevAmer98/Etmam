@@ -90,6 +90,51 @@ async function sendNotificationTosupervisor(message, title = 'Notification') {
   }
 }
 
+
+
+async function sendNotificationToatorekeeper(message, title = 'Notification') {
+  const client = await pool.connect();
+  try {
+    const query = 'SELECT fcm_token FROM Storekeepers WHERE role = $1 AND active = TRUE';
+    const result = await executeWithRetry(async () => {
+      return await withTimeout(client.query(query, ['storekeeper']), 10000); // 10-second timeout
+    });
+    const tokens = result.rows.map((row) => row.fcm_token).filter((token) => token != null);
+
+    console.log(`Sending notifications to storekeepers:`, tokens);
+
+    // Check if tokens array is empty
+    if (tokens.length === 0) {
+      console.warn('No FCM tokens found for storekeepers. Skipping notification.');
+      return;
+    }
+
+    // Prepare the messages for Firebase
+    const messages = tokens.map((token) => ({
+      notification: {
+        title: title,
+        body: message,
+      },
+      data: {
+        role: 'storekeeper', // Add role information to the payload
+      },
+      token,
+    }));
+
+    // Send the notifications
+    const response = await admin.messaging().sendEach(messages);
+    console.log('Successfully sent messages:', response);
+    return response;
+  } catch (error) {
+    console.error('Failed to send FCM messages:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+
+
 router.put('/acceptManager/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -101,7 +146,10 @@ router.put('/acceptManager/:id', async (req, res) => {
     const updateOrderQuery = `
       UPDATE orders 
       SET manageraccept = 'accepted',
-          updated_at = CURRENT_TIMESTAMP
+          missing = 'FALSE',
+          updated_at = CURRENT_TIMESTAMP,
+                    approved_at = CURRENT_TIMESTAMP
+
       WHERE id = $1
     `;
     await executeWithRetry(async () => {
@@ -111,6 +159,11 @@ router.put('/acceptManager/:id', async (req, res) => {
     await sendNotificationTosupervisor(
       `تم قبول الطلب ${id} من قبل المدير.`,
     );
+
+     await sendNotificationToatorekeeper(
+      `تم قبول الطلب ${id} من قبل المدير.`,
+    );
+
 
     return res.status(200).json({ message: 'Order accepted successfully' });
   } catch (error) {
