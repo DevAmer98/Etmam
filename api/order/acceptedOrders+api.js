@@ -71,8 +71,8 @@ router.get('/orders/supervisorAccept', async (req, res) => {
 
     // Paginated query
     const paginatedFilterCondition = hasStatus
-      ? `orders.supervisoraccept = 'accepted' AND orders.storekeeperaccept = $4`
-      : `orders.supervisoraccept = 'accepted'`;
+      ? `orders.manageraccept = 'accepted' AND orders.supervisoraccept = 'accepted' AND orders.storekeeperaccept = $4`
+  : `orders.manageraccept = 'accepted' AND orders.supervisoraccept = 'accepted'`;
 
     const baseQuery = `
       SELECT 
