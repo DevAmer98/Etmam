@@ -123,10 +123,13 @@ router.post('/orders/salesRep', async (req, res) => {
 
     // Generate custom ID
     const customId = await generateCustomId(client);
-    const { rows: orderNumberRows } = await client.query(`
-  SELECT generate_series(1, COALESCE(MAX(order_number), 0) + 1) AS num
-  EXCEPT
-  SELECT order_number FROM orders
+ const { rows: orderNumberRows } = await client.query(`
+  SELECT num FROM (
+    SELECT generate_series(1, COALESCE((SELECT MAX(order_number) FROM orders), 0) + 1) AS num
+  ) AS all_nums
+  WHERE NOT EXISTS (
+    SELECT 1 FROM orders o WHERE o.order_number = all_nums.num
+  )
   ORDER BY num
   LIMIT 1
 `);
