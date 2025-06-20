@@ -150,12 +150,22 @@ router.post('/orders/supervisor', async (req, res) => {
         // Generate custom ID
         const customId = await generateCustomId(client);
 
+         const { rows: orderNumberRows } = await client.query(`
+  SELECT generate_series(1, COALESCE(MAX(order_number), 0) + 1) AS num
+  EXCEPT
+  SELECT order_number FROM orders
+  ORDER BY num
+  LIMIT 1
+`);
+const nextOrderNumber = orderNumberRows[0]?.num || 1;
+
+
         // Insert order
         const orderResult = await withTimeout(
           client.query(
-            `INSERT INTO orders (client_id, username, delivery_date, delivery_type, notes, total_vat, total_subtotal, status, custom_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7,$8, $9) RETURNING id`,
-            [client_id, username, formattedDate, delivery_type, notes || null, total_vat, total_subtotal, status, customId]
+            `INSERT INTO orders (client_id, username, delivery_date, delivery_type, notes, total_vat, total_subtotal, status, custom_id,order_number)
+             VALUES ($1, $2, $3, $4, $5, $6, $7,$8, $9,$10) RETURNING id`,
+            [client_id, username, formattedDate, delivery_type, notes || null, total_vat, total_subtotal, status, customId,nextOrderNumber]
           ),
           10000
         );
@@ -255,104 +265,6 @@ router.post('/orders/supervisor', async (req, res) => {
 });
 
 
-/*
-router.get('/supervisor', async (req, res) => {
-  let client;
-  try {
-    const limit = Math.min(parseInt(req.query.limit || '10', 10), 50);
-    const page = Math.max(parseInt(req.query.page || '1', 10), 1);
-    const query = req.query.query || '';
-
-    const offset = (page - 1) * limit;
-
-    const baseQuery = `
-      SELECT 
-        orders.id,
-        orders.client_id,
-        orders.delivery_date,
-        orders.delivery_type,
-        orders.notes,
-        orders.created_at,
-        orders.updated_at,
-        orders.deleted_at,
-        orders.status,
-        orders.actual_delivery_date,
-        orders.storekeeper_notes,
-        orders.total_price,
-        orders.username AS sales_rep_username,  -- Renamed for clarity
-        orders.supervisoraccept,
-        orders.storekeeperaccept,
-        orders.manageraccept,
-        orders.custom_id,
-        orders.driver_notes,
-        orders.supervisor_id,
-        orders.total_vat,
-        orders.total_subtotal,
-        clients.client_name AS client_name,
-        clients.phone_number AS client_phone,
-        clients.company_name AS client_company,
-        clients.branch_number AS client_branch,
-        clients.tax_number AS client_tax,
-        clients.latitude AS client_latitude,
-        clients.longitude AS client_longitude,
-        clients.street AS client_street,
-        clients.city AS client_city,
-        clients.region AS client_region, 
-        clients.username AS client_user_identifier
-
-      FROM orders
-      JOIN clients ON orders.client_id = clients.id
-      WHERE (clients.client_name ILIKE $3 OR clients.company_name ILIKE $3)
-      AND ${filterCondition}
-      ORDER BY orders.created_at DESC
-      LIMIT $1 OFFSET $2
-    `;
-
-    const countQuery = `
-      SELECT COUNT(*) AS total
-      FROM orders
-      JOIN clients ON orders.client_id = clients.id
-      WHERE (clients.client_name ILIKE $1 OR clients.company_name ILIKE $1)
-    `;
-
-    const baseQueryParams = [limit, offset, `%${query}%`];
-    const countQueryParams = [`%${query}%`];
-
-    const [ordersResult, countResult] = await executeWithRetry(async () => {
-      client = await pool.connect();
-      return await Promise.all([
-        withTimeout(client.query(baseQuery, baseQueryParams), 10000),
-        withTimeout(client.query(countQuery, countQueryParams), 10000)
-      ]);
-    });
-
-    const orders = ordersResult.rows;
-    const totalCount = parseInt(countResult.rows[0]?.total || 0, 10);
-    const hasMore = page * limit < totalCount;
-
-    
-
-    return res.status(200).json({
-      orders,
-      hasMore,
-      totalCount,
-      currentPage: page,
-      totalPages: Math.ceil(totalCount / limit),
-    });
-  } catch (error) {
-    console.error('Error fetching orders:', error);
-    return res.status(500).json({
-      error: error.message || 'Error fetching orders',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    });
-  } finally {
-    if (client) {
-      client.release();
-    }
-  }
-});
-
-*/
 
 
 router.get('/supervisor', async (req, res) => {

@@ -123,12 +123,20 @@ router.post('/orders/salesRep', async (req, res) => {
 
     // Generate custom ID
     const customId = await generateCustomId(client);
+    const { rows: orderNumberRows } = await client.query(`
+  SELECT generate_series(1, COALESCE(MAX(order_number), 0) + 1) AS num
+  EXCEPT
+  SELECT order_number FROM orders
+  ORDER BY num
+  LIMIT 1
+`);
+const nextOrderNumber = orderNumberRows[0]?.num || 1;
 
     const orderResult = await withTimeout(
       client.query(
-        `INSERT INTO orders (client_id, username, delivery_date, delivery_type, notes, status, total_vat, total_subtotal, custom_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-        [client_id, username, formattedDate, delivery_type, notes || null, status,total_vat, total_subtotal, customId]
+        `INSERT INTO orders (client_id, username, delivery_date, delivery_type, notes, status, total_vat, total_subtotal, custom_id,order_number)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+        [client_id, username, formattedDate, delivery_type, notes || null, status,total_vat, total_subtotal, customId,nextOrderNumber]
         
       ),
       10000 // 10-second timeout

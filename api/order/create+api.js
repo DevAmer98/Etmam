@@ -226,13 +226,23 @@ try {
 
         // Generate custom ID
         const customId = await generateCustomId(client);
+        const { rows: orderNumberRows } = await client.query(`
+  SELECT generate_series(1, COALESCE(MAX(order_number), 0) + 1) AS num
+  EXCEPT
+  SELECT order_number FROM orders
+  ORDER BY num
+  LIMIT 1
+`);
 
+const nextOrderNumber = orderNumberRows[0]?.num || 1; // fallback to 1
         // Insert order
         const orderResult = await withTimeout(
           client.query(
-            `INSERT INTO orders (client_id, username, delivery_date, delivery_type, notes, total_vat, total_subtotal, status custom_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7,$8,$9) RETURNING id`,
-            [client_id, username, formattedDate, delivery_type, notes || null, status, customId]
+            `INSERT INTO orders (client_id, username, delivery_date, delivery_type, notes, total_vat, total_subtotal, status, custom_id, order_number)
+             VALUES ($1, $2, $3, $4, $5, $6, $7,$8,$9, $10) RETURNING id`,
+            [client_id, username, formattedDate, delivery_type, notes || null, 0, 0, status, customId, nextOrderNumber]
+
+
           ),
           10000
         );
